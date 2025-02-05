@@ -3,12 +3,21 @@ import Search from './components/Search';
 import { useState, useEffect } from 'react';
 import Loader from './components/Loader';
 import Card from './components/Card';
+import { useDebounce } from 'react-use';
+import { updateTrend, getTrends } from './appwrite';
+import Trending from './components/Trending';
 
 function App() {
   const [searchWord, setSearchWord] = useState('')
   const [movies, setMovies] = useState([])
   const [errorMessage, setErrorMessage] = useState(null)
   const [isloading, setIsLoading] = useState(false)
+  const [debouncedSearchWord, setDebouncedSearchWord] = useState('')  
+  const [trendingMovies, setTrendingMovies] = useState([])
+
+  // debounce the search word to avoid making too many requests
+  // by waiting for the user to stop typing for a certain amount of time which is 700ms as the second argument
+  useDebounce(() => {setDebouncedSearchWord(searchWord)}, 700, [searchWord])
 
   const MOVIES_API_KEY = import.meta.env.VITE_TMDB_API_KEY;
   const API_URL = 'https://api.themoviedb.org/3';
@@ -25,10 +34,11 @@ function App() {
     setIsLoading(true);
     // make sure to clear any previous error messages
     setErrorMessage(null);
+    setMovies([]);
 
     try {
-      const url = `${API_URL}/discover/movie?sort_by=popularity.desc`;
-
+      const url = debouncedSearchWord? `${API_URL}/search/movie?query=${debouncedSearchWord}` : `${API_URL}/discover/movie?sort_by=popularity.desc`;
+      
       const response = await fetch(url, API_OPTIONS);
 
       // check if the response is not ok then throw an error
@@ -48,6 +58,11 @@ function App() {
       // set the movies into the data results or empty array in case something went wrong
       setMovies(data.results || []);
 
+      // update the trending movies in the database
+      if (searchWord && data.results.length > 0) {
+        await updateTrend(searchWord, data.results[0]);
+      }
+
     } catch (err) {
       console.error(err);
       // catch any error and set the error message
@@ -58,9 +73,25 @@ function App() {
     }
   }
 
+  const get_trending_movies = async () => {
+    try{
+      const trends = await getTrends();
+      setTrendingMovies(trends);
+
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+
   useEffect(() => {
-    get_movies()
+    get_movies();
+  }, [debouncedSearchWord]);
+
+  useEffect(() => {
+    get_trending_movies();
   }, []);
+
 
   return (
     <>
@@ -73,17 +104,27 @@ function App() {
 
           <Search searchWord={searchWord} setSearchWord={setSearchWord} />
         </header>
+        
+         {trendingMovies.length > 0 && (<section className="trending">
+          <h2>Trending Movies</h2>
+          <ul>
+            {trendingMovies.map((movie, index) => (
+              <Trending key={movie.$id} movie={movie} index={index}/>
+            ))}
+          </ul>
+          </section>)}
         <section className="all-movies">
           <h2>All Movies</h2>
           {isloading ? <Loader /> : errorMessage ? <p className="error-message">{errorMessage}</p> : (
             <ul>
-            {movies.map((movie) => (
-              <Card key={movie.id} movie={movie} />
-            ))}
-          </ul>
+              {movies.map((movie) => (
+                <Card key={movie.id} movie={movie} />
+              ))}
+            </ul>
           )}
-
         </section>
+       
+       
       </div>
     </>
   )

@@ -6,4 +6,7 @@ Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-# movie-list2
+
+## What is Debouncing in JavaScript?
+
+In JavaScript, debouncing is commonly used to enhance browser performance by ensuring that expensive operations (like complex calculations, API calls, or DOM updates) are executed only when necessary. JavaScript operates in a single-threaded environment, meaning it can only handle one operation at a time. When certain actions are triggered too frequently, such as during continuous scrolling or typing, it can overload the browser and cause sluggish performance.
